@@ -1,7 +1,7 @@
 require('dotenv').config();
 const mongoose = require("mongoose");
 
-mongoose.connect(process.env.DB_CONNECTION_MONGO_ATLAS)
+mongoose.connect(process.env.DB_CONNECTION_LOCALHOST)
     .then(() => console.log("connection successfull........."))
     .catch((err) => console.log(err)); 
 // mongoose.connect(process.env.DB_CONNECTION_LOCALHOST,{
