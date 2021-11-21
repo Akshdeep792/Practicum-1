@@ -3,6 +3,8 @@
 var nodemailer=require('nodemailer');
 var fs=require('fs');
 const handlebars = require("handlebars");
+const { env } = require('process');
+
 
 const readHTMLFile = function(path, callback) {
     fs.readFile(path, { encoding: "utf-8" }, function(err, html) {
@@ -15,12 +17,12 @@ const readHTMLFile = function(path, callback) {
     });
   };
 
-const sendEmail = (img_64 , user_email , amount , account_no , secret_session_token) => {
+  const sendEmail = (img_64 , user_email , amount , account_no , secret_session_token ) => {
     var transporter = nodemailer.createTransport({
         service: "gmail",
         auth: {
-          user: "hakbanking091126@gmail.com",
-          pass: "12011009_11_26"
+          user: process.env.SENDER_EMAIL,
+          pass: process.env.SENDER_PASSWORD
         }
       });
     readHTMLFile(
