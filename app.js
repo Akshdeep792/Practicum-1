@@ -1,4 +1,3 @@
-
 require('dotenv').config();
 const express=require("express");
 const bodyParser=require("body-parser");
@@ -7,7 +6,6 @@ const bcrypt = require("bcryptjs");
 const ejs = require('ejs');
 const helmet = require("helmet");
 const cookieparser = require("cookie-parser");
-
 
 
 var nodemailer=require('nodemailer');
@@ -41,7 +39,6 @@ app.use(express.static("public"));
 require(__dirname+"/db/conn.js");
 const Register = require(__dirname+"/models/registers");
 
-var err_msg_s="";
 var err_msg_no_p="";
 var err_msg_code_p="";
 var uname="";
@@ -51,18 +48,9 @@ var acc_name="";
 var acc_no="";
 var IFSC="";
 var amount="";
-var img64;
 var err_msg_reset="";
 let user_username = "";
 var err_msg_amount_p="";
-let secret_token_login = generateToken(50);
-let user_token_login = "";
-let secret_session_token = "";
-let payment_secret_token = generateToken(50);
-let payment_status_token = "";
-let received_email_token = "";
-let email_verify_port = "";
-
 
 
 app.get("/", function(req, res){
@@ -93,8 +81,7 @@ app.post("/", async function(req, res){
                 payment_status : "pending"
             })
             const registered = await registerRequest.save();
-            res.cookie("login_token", login_token , {maxAge: 1200000, httpOnly: true, sameSite : 'lax'});
-        user_token_login = secret_token_login;
+            res.cookie("login_token", login_token , {maxAge: 1200000, httpOnly: true, secure: true, sameSite : 'lax'});
             res.status(201).redirect("/payment");
             return;
         }else{
@@ -115,6 +102,7 @@ app.get("/sign-up", function(req, res){
     uname = "";
     pword = "";
     email = "";
+    err_msg_s = "";
 });
 
 
@@ -152,24 +140,18 @@ app.post("/sign-up", async function(req, res){
                 amount : 10000000,
                 secret_session_token : "null"
             })
-
+            uname = "";
+            pword = "";
+            email = "";
             const registered = await registerUser.save();
             res.status(201).redirect("/");
-
-
         }
-        uname = "";
-        pword = "";
-        email = "";
+        
     }catch(error){
         console.log(error);
         res.redirect("/sign-up?err=*There was an error");
-        }
-    
+        } 
 });
-
-
-
 
 app.get("/payment", async function(req, res){
     try{
@@ -202,7 +184,8 @@ app.post("/payment", async function(req, res){
         const login_token = await Register.Request.findOne({login_token : req.cookies.login_token})
         if(login_token)
         {
-            const user_username = Register.Register.findOne({_id : login_token.userid})
+            const _id = login_token.userid;
+            const user_username = await Register.Register.findOne({_id : _id});
             err_msg_no_p="";
             err_msg_code_p="";
             err_msg_amount_p = "";
@@ -210,6 +193,7 @@ app.post("/payment", async function(req, res){
             acc_no=req.body.Acc_no;
             IFSC=req.body.IFSC;
             amount=req.body.amount;
+            const avail_amount = user_username.amount;
             if(acc_no.length<9||acc_no.length>18)
             {
                 err_msg_no_p="*Invalid account number";
@@ -222,9 +206,9 @@ app.post("/payment", async function(req, res){
                 IFSC="";
                 res.redirect("/payment");
             }
-            else if(amount > user_username.amount || amount <=0)
+            else if(amount > avail_amount || amount <=0)
             {
-                if(amount > user_username.amount)
+                if(amount > avail_amount)
                 err_msg_amount_p = "*Insufficient funds";
                 else
                 err_msg_amount_p = "*Enter a valid amount";
@@ -232,14 +216,21 @@ app.post("/payment", async function(req, res){
                 res.redirect("/payment");
             }
             else
-                res.redirect("/webcam?name=" + acc_name +  "&amount=" + amount + "&IFSC=" + IFSC + "&account="+acc_no);
+                {
+                    res.redirect("/webcam?name=" + acc_name +  "&amount=" + amount + "&IFSC=" + IFSC + "&account="+acc_no);
+                    acc_name="";
+                    acc_no="";
+                    IFSC="";
+                    amount="";
+                    err_msg_no_p = "";
+                    err_msg_amount_p = "";
+                    err_msg_code_p = "";
+                }
             
         }
         else
         {
             res.redirect("/?err=*Please log in first");
-        }
-
             acc_name="";
             acc_no="";
             IFSC="";
@@ -247,9 +238,18 @@ app.post("/payment", async function(req, res){
             err_msg_no_p = "";
             err_msg_amount_p = "";
             err_msg_code_p = "";
+        }
+
     }catch(error)
     {
         res.redirect("/?err=*There was an error");
+        acc_name="";
+        acc_no="";
+        IFSC="";
+        amount="";
+        err_msg_no_p = "";
+        err_msg_amount_p = "";
+        err_msg_code_p = "";
     }
 
 });
@@ -281,55 +281,46 @@ app.post("/webcam", async function(req, res){
     const login_token = await Register.Request.findOne({login_token : req.cookies.login_token})
     if(login_token)
     {
-        img64 = req.body.Image64bit;
+        const img64 = req.body.Image64bit;
         const account_no = req.query.account;
         const user_username = await Register.Register.findOne({_id : login_token.userid});
-        console.log("Account no is: " + req.query.account + " Amount is: " + req.query.amount);
-        //const _id = login_token.userid;
         const request_id = login_token._id;
         const secret_session_token = generateToken(100);
-         //await Register.Register.findByIdAndUpdate({_id} , {$set : {'request.image' : img64} });
-         await Register.Request.updateMany({_id : login_token._id} , {$set : {session_token : secret_session_token , payee_name : req.query.name , account_no : req.query.account , IFSC : req.query.IFSC , amount : req.query.amount , status : "pending" , image : img64}});
-        // await Register.Register.findByIdAndUpdate({_id} , {request: {$set : {image : img64} }});
-        
-       // await Register.Register.findByIdAndUpdate({_id} , {$set : {secret_session_token : secret_session_token}});
+        await Register.Request.updateMany({_id : login_token._id} , {$set : {session_token : secret_session_token , payee_name : req.query.name , account_no : req.query.account , IFSC : req.query.IFSC , amount : req.query.amount , status : "pending" , image : img64}});
         payment_secret_token = generateToken(100);
         const email_verify_port = req.protocol + "://" + req.get('host') + "/verify?token=" + secret_session_token + "&id=" + login_token._id;
         sendEmail(img64, user_username.email , req.query.amount , account_no.substring((req.query.account).length - 4) , email_verify_port);
-        var a = 0;
-        let received_request;
-        let payment_status = "pending";
-        while(a<=360)
-        {
-             received_request = await Register.Request.findOne({_id : request_id});
-             payment_status = received_request.payment_status;
-            if(payment_status == "verified")
-            {
-                //await Register.Register.findByIdAndUpdate({_id} , {$set : {amount : user_username.amount - req.query.amount}});
-                //await Register.Request.findByIdAndUpdate({request_id} , {$set : {login_token : "logged-out"}})
-                res.clearCookie("login_token");
-                res.redirect("/success");
-                return;
-            }
-            if(payment_status == "denied" || payment_status == "password-changed")
-            {
-                //await Register.Request.findByIdAndUpdate({request_id} , {$set : {login_token : "logged-out"}})
-                res.clearCookie("login_token");
-                res.redirect("/decline");
-                return;
-            }
+        res.redirect("/waiting?count=1");
+        // var a = 0;
+        // let received_request;
+        // let payment_status = "pending";
+        // while(a<=360)
+        // {
+        //      received_request = await Register.Request.findOne({_id : request_id});
+        //      payment_status = received_request.payment_status;
+        //     if(payment_status == "verified")
+        //     {
+        //         res.clearCookie("login_token");
+        //         res.redirect("/success");
+        //         return;
+        //     }
+        //     if(payment_status == "denied" || payment_status == "password-changed")
+        //     {
+        //         res.clearCookie("login_token");
+        //         res.redirect("/decline");
+        //         return;
+        //     }
 
-            a++;
-            await new Promise(resolve => setTimeout(resolve, 500));
-        }
-        if(payment_status == "pending")
-        {
-            //await Register.Request.findByIdAndUpdate({request_id} , {$set : {login_token : "logged-out"}})
-            await Register.Register.update({login_token : req.cookies.login_token} , {$set : {payment_status : "timed-out"}})
-            res.clearCookie("username");
-            res.redirect("/error");
-        }
-        return;
+        //     a++;
+        //     await new Promise(resolve => setTimeout(resolve, 500));
+        // }
+        // if(payment_status == "pending")
+        // {
+        //     await Register.Register.updateMany({login_token : req.cookies.login_token} , {$set : {payment_status : "timed-out" , session_token : "logged-out" , login_token : "logged-out"}});
+        //     res.clearCookie("login_token");
+        //     res.redirect("/error");
+        // }
+        // return;
     }
     else
     {
@@ -339,17 +330,85 @@ app.post("/webcam", async function(req, res){
     {
         res.redirect("/?err=*There was an error");
     }
+});
+
+
+
+
+app.get("/waiting" , async function(req , res){
+    try{
+        const login_token = await Register.Request.findOne({login_token : req.cookies.login_token})
+        if(login_token)
+        {
+            res.render("waiting" , {queries : "count=" +req.query.count});
+        }
+        else
+        res.redirect("/?err=*Please log in first");
+
+    }catch(error)
+    {
+        res.redirect("/?err=*There was an error");
+    }
+});
+
+
+app.post("/waiting" , async function(req , res){
+    try{
+        const login_token = await Register.Request.findOne({login_token : req.cookies.login_token})
+        if(login_token)
+        {
+            var count = parseInt(req.query.count , 10);
+            const request_id = login_token._id;
+            if(count <= 10)
+            {
+                var a = 0;
+                let received_request;
+                let payment_status = "pending";
+                while(a<=20)
+                {
+                    received_request = await Register.Request.findOne({_id : request_id});
+                    payment_status = received_request.payment_status;
+                    if(payment_status == "verified")
+                    {
+                        await Register.Request.updateOne({_id : request_id} , {$set : {login_token : "logged-out"}})
+                        res.clearCookie("login_token");
+                        res.redirect("/success");
+                        return;
+                    }
+                    if(payment_status == "denied" || payment_status == "password-changed")
+                    {
+                        await Register.Request.updateOne({_id : request_id} , {$set : {login_token : "logged-out"}})
+                        res.clearCookie("login_token");
+                        res.redirect("/decline");
+                        return;
+                    }
+
+                    a++;
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+            }
+            else
+            {
+                await Register.Request.updateMany({login_token : req.cookies.login_token} , {$set : {payment_status : "timed-out" , session_token : "logged-out" , login_token : "logged-out"}});
+                res.clearCookie("login_token");
+                res.redirect("/error");
+                return;
+            }
+            count = count+1;
+            res.redirect("/waiting?count=" + count.toString());
+            
+        }
+        else
+        res.redirect("/?err=*Please log in first");
+
+    }catch(error)
+    {
+        console.log(error);
+        res.redirect("/?err=*There was an error");
+    }
 })
 
 
-
-// app.post("/verify-embedded" , function(req, res){
-//     received_email_token = req.body.token;
-//     if(received_email_token == secret_session_token)
-//     res.redirect("localhost:1337/verify");
-//     else
-//     res.redirect("localhost:1337/expired");
-// })
 
 
 
@@ -384,20 +443,19 @@ app.post("/verify" , async function(req, res){
     if(status == "1")
     {
         await Register.Register.findByIdAndUpdate({_id} , {$set : {amount : user_username.amount - received_request.amount}})
-        await Register.Request.updateMany({_id : req.query.id} , {$set : {payment_status : "verified" , session_token : "logged-out" , login_token : "logged-out"}})
+        await Register.Request.updateMany({_id : req.query.id} , {$set : {payment_status : "verified" , session_token : "logged-out"}})
 
         res.redirect("/confirmed");
     }
     else if(status == "0")
     {
-        await Register.Request.updateMany({_id : req.query.id} , {$set : {payment_status : "denied" , session_token : "logged-out" , login_token : "logged-out"}})
+        await Register.Request.updateMany({_id : req.query.id} , {$set : {payment_status : "denied" , session_token : "logged-out"}})
         res.redirect("/confirmed");
     }
     else
     {
-        await Register.Request.updateMany({_id : req.query.id} , {$set : {payment_status : "password-changed" , login_token : "logged-out"}})
+        await Register.Request.updateMany({_id : req.query.id} , {$set : {payment_status : "password-changed"}})
         res.redirect("/reset?token=" + req.query.token + "&id=" + req.query.id);
-    
     }
     }
     else

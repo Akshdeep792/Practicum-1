@@ -5,18 +5,12 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="css/webcam.css" />
-    <link rel="stylesheet" href="css/waitingpage.css"/>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300&display=swap" rel="stylesheet">
-    <style>
-      .hide{
-          display: none;
-      }
-  </style>
     <title>Webcam</title>
 </head>
-<body><section class="full-webcam" id="webcam">
+<body>
     <div class="boss">
         <div class="heading">
             <h1>Verify Your Image</h1>
@@ -29,7 +23,7 @@
                 <video autoplay="true" width="700" height="400" id="video">
                 </video>
                 <div id="controller">
-                  <button id="cap">Capture</button>
+                <button id="cap">Capture</button>
             </div>
             </div>
         </div>
@@ -39,27 +33,13 @@
 
             </div>
             <div class="controller">
-              <form action="/webcam?<%=queries%>" method="POST"><div style="display: none;">
+                <form action="/webcam?<%=queries%>" method="POST"><div style="display: none;">
                   <input type="text" id="img64capture" name="Image64bit" value=""></div>
                   <input id="cap-1" type="submit" value="Submit">
                  </form>
             </div>
         </div>
-    </div></section>
-
-
-    <section class="full-waiting hide" id="waiting">
-      <div class="boss-waiting">
-        <div class="heading-waiting">
-            <h1>Mail Has Been Sent</h1>
-           
-          </div> 
     </div>
-    <div class="main-waiting">
-        <!-- <img src="https://drive.google.com/file/d/1bsqWGqKHTwDOCY5bMuf8krjAfW4TMd1L/view?usp=sharing" alt="" height="50%" width="50%"> -->
-        <video src="images/QHTn.mp4" autoplay loop height="50%" width="50%"></video>
-    </div>
-    </section>
-  <script src="js/webcam.js"></script>
+    <script src = "js/webcam.js"></script>
 </body>
 </html>
