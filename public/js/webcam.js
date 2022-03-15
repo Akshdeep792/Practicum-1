@@ -4,7 +4,7 @@ var video = document.querySelector("#video");
         .then(function (stream) {
           video.srcObject = stream;
         })
-        .catch(function (err0r) {
+        .catch(function (error) {
           console.log("Something went wrong!");
         });
     }
