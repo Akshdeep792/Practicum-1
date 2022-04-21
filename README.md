@@ -1,8 +1,11 @@
 # Securing Online Transaction
-# https://secured-banking.herokuapp.com/
+## https://secured-banking.herokuapp.com/
 A web app that uses photo validation system for safer transactions.
 <p>The webcam captures the picture of the transactor and sends it to the Account Holder's Email who then verifies if the transaction is valid or not.</p>
 <p>In case he/she denies the transaction due to some suspicious activity, an option to change the password is given.</p>
+<hr>
+## Tech Stack Used
+<p> HTML,CSS for **FrontEnd**, NodeJs and Express as **Backend** and MongoDB as **Database**.</p>
 <hr>
 <h1>Report of the Project</h1>
 <a href="https://drive.google.com/file/d/1cerqKbW90ZNWSTztuvmkG4yoRUzNiWl2/view">Click To Open</a>
